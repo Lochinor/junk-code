@@ -1,0 +1,11 @@
+[versions]
+asm = "9.6"
+plugin-publish = "1.1.0"
+kotlin = "1.8.20"
+
+[libraries]
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+plugin-publish = { id = "com.gradle.plugin-publish", version.ref = "plugin-publish" }
