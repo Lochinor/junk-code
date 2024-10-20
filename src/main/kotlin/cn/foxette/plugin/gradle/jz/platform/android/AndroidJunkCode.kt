@@ -5,7 +5,7 @@ import cn.foxette.plugin.gradle.jz.configuration.ProjectConst
 import cn.foxette.plugin.gradle.jz.configuration.ProjectConst.JUNK_CODE_DIR_NAME
 import cn.foxette.plugin.gradle.jz.platform.android.ext.AndroidJunkCodeExtension
 import cn.foxette.plugin.gradle.jz.platform.android.task.AndroidJunkCodeTask
-import cn.foxette.plugin.gradle.jz.platform.jvm.randomPackageName
+import cn.foxette.plugin.gradle.jz.platform.jvm.JvmJunkCodeProducer
 import org.gradle.api.Project
 import java.io.File
 
@@ -16,6 +16,8 @@ internal class AndroidJunkCode : JunkCodePlatform() {
         const val TASK_NAME = "generateAndroidJunkCode"
     }
 
+    private val producer = JvmJunkCodeProducer()
+
     override fun apply(project: Project) {
         val extension = project.extensions.create(EXTENSION_NAME, AndroidJunkCodeExtension::class.java)
         convention(extension)
@@ -24,20 +26,20 @@ internal class AndroidJunkCode : JunkCodePlatform() {
     }
 
     private fun convention(extension: AndroidJunkCodeExtension) {
+
+
         with(extension) {
             fileName.convention("junk_code_${ProjectConst.VERSION}")
             autoUsage.convention(true)
             autoGenerate.convention(true)
-            moduleName.convention("jmp${randomPackageName(5)}")
+            moduleName.convention("jmp${producer.randomPackageName(5)}")
             // 使用随机包名
-            packageName.convention("cn.foxette.${randomPackageName()}")
+            packageName.convention("cn.foxette.${producer.randomPackageName()}")
             packageCount.convention(8)
             maxActivityCount.convention(-1)
             maxPackageActivityCount.convention(-1)
             minPackageActivityCount.convention(1)
             resPrefix.convention("jz_")
-            stringsCount.convention(1024 * 8)
-            drawableCount.convention(1024 * 4)
             skipResource.convention(false)
             androidxEnable.convention(true)
         }
