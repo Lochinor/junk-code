@@ -52,7 +52,10 @@ internal class AndroidJunkCode : JunkCodePlatform() {
     private fun afterEvaluate(project: Project, extension: AndroidJunkCodeExtension) {
         project.afterEvaluate {
             if (extension.autoUsage.get()) {
-                project.dependencies.add("releaseRuntimeOnly", project.fileTree(JUNK_CODE_DIR_NAME).include("*.aar"))
+                project.dependencies.add(
+                    "releaseRuntimeOnly",
+                    project.fileTree(mapOf("dir" to JUNK_CODE_DIR_NAME, "include" to listOf("*.jar", "*.aar")))
+                )
             }
 
             val autoGenerate = extension.autoGenerate.get()
@@ -62,8 +65,10 @@ internal class AndroidJunkCode : JunkCodePlatform() {
         }
     }
 
-    private fun notExistsJunkCodeFiles(project: Project) = File(project.projectDir, JUNK_CODE_DIR_NAME)
-        .listFiles { _, name -> name.endsWith(".aar") }
-        .isNullOrEmpty()
+    private fun notExistsJunkCodeFiles(project: Project): Boolean {
+        return File(project.projectDir, JUNK_CODE_DIR_NAME)
+            .listFiles { _, name -> name.endsWith(".aar") }
+            .isNullOrEmpty()
+    }
 
 }

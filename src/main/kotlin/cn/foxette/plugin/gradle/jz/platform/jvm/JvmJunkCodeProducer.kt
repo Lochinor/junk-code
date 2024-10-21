@@ -25,6 +25,7 @@ open class JvmJunkCodeProducer : JunkCodeProducer {
 
         val CHARACTER = "abcdefghijklmnopqrstuvwxyz".toCharArray()
         val CHARACTER_UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray()
+        val CHARACTER_NUMBER = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray()
     }
 
 

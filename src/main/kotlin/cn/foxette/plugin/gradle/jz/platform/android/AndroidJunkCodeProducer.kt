@@ -4,6 +4,7 @@ import cn.foxette.plugin.gradle.jz.configuration.ProjectConst
 import cn.foxette.plugin.gradle.jz.platform.android.gen.AndroidJunkGenerator
 import cn.foxette.plugin.gradle.jz.platform.jvm.JvmJunkCodeProducer
 import org.gradle.internal.impldep.org.apache.commons.lang.text.StrBuilder
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -38,7 +39,22 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
     }
 
     open fun randomStringValues(length: Int = 255, unicode: Boolean = false): String {
-        return "@null"
+        if (length < 1) {
+            return CHARACTER_NUMBER[Random.nextInt(CHARACTER_NUMBER.size)].toString()
+        }
+        val size = Random.nextInt(1, length)
+        val sb = StringBuilder(size)
+        val random = ThreadLocalRandom.current()
+
+        repeat(size) {
+            if (unicode) {
+                sb.appendCodePoint(random.nextInt(Character.MIN_CODE_POINT, Character.MAX_CODE_POINT))
+            } else {
+                sb.append(CHARACTER_NUMBER[random.nextInt(CHARACTER_NUMBER.size)])
+            }
+        }
+
+        return sb.toString()
     }
 
     /**
@@ -88,7 +104,7 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
             "Button", "TextView", "android.widget.Button" -> {
                 // 展示随机 Text
                 if (cnd1 || (cnd2 && generator.strings.isEmpty()))
-                    attribute("android:text=\"${randomStringValues()}\"")
+                    attribute("android:text=\"${randomStringValues(20)}\"")
                 else if (cnd2)
                     attribute("android:text=\"@string/${randomNext(generator.strings)}\"")
 

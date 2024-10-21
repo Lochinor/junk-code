@@ -3,6 +3,7 @@ package cn.foxette.plugin.gradle.jz.platform.android.gen
 import cn.foxette.plugin.gradle.jz.log.Logger
 import cn.foxette.plugin.gradle.jz.log.PluginLogger
 import cn.foxette.plugin.gradle.jz.platform.android.AndroidJunkCodeProducer
+import cn.foxette.plugin.gradle.jz.platform.android.AndroidJunkCodeProducer.Companion.ANDROID_SCHEMA
 import cn.foxette.plugin.gradle.jz.platform.android.ext.AndroidJunkCodeParam
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.ClassInfo
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.ClassType
@@ -12,8 +13,12 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import java.io.File
 import java.io.FileWriter
+import java.text.DecimalFormat
 import java.util.*
-import kotlin.collections.ArrayList
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.random.Random
 
 internal abstract class AndroidJunkGenerator(
@@ -26,6 +31,7 @@ internal abstract class AndroidJunkGenerator(
 
     protected companion object {
         const val MAX_ID_SIZE = 8192
+        const val ON_CREATE_METHOD_OFFSET = 1
     }
 
     private val workspace = File(dir, "androidJunkCodeGen")
@@ -60,6 +66,18 @@ internal abstract class AndroidJunkGenerator(
 
         generateResource()
         generateClasses()
+        generateManifest()
+        writeResourceContent()
+        generateKeepProguard()
+        writeRFile()
+
+        log("资源文件生成完成，开始打包...")
+
+        // 正在打包
+        val outPath = assembleAar()
+        val msg = "垃圾代码生成完成：\n\r\t$outPath \n\r\t${fileSize(outPath.length())}"
+        log(msg)
+        println(msg)
 
         val end = System.nanoTime()
         val timeMills = (end - start) / 1_000_000
@@ -272,7 +290,7 @@ internal abstract class AndroidJunkGenerator(
         repeat(callCnt) { index ->
             val field = fields[index]
             mv.visitVarInsn(Opcodes.ALOAD, 2)
-            mv.visitLdcInsn(producer.randomStringValues())
+            mv.visitLdcInsn(producer.randomStringValues(unicode = true))
             mv.visitFieldInsn(Opcodes.PUTFIELD, otherType, field.name, "Ljava/lang/String;")
         }
 
@@ -322,7 +340,7 @@ internal abstract class AndroidJunkGenerator(
         // 生成一些无关的方法
         val list = ArrayList(methods)
         val cnt = Random.nextInt(2, 15)
-        repeat(cnt) { index ->
+        repeat(cnt) {
             val s = producer.randomMethodName()
             if (!methods.add(s)) return@repeat
             list.add(s)
@@ -330,28 +348,32 @@ internal abstract class AndroidJunkGenerator(
             val method = cw.visitMethod(Opcodes.ACC_PRIVATE, s, "()V", null, null)
             method.visitVarInsn(Opcodes.ALOAD, 0)
 
-            // 防止死循环
-            val fn = Random.nextInt(1, list.size - 1)
-            val cnd1 = fn % 2 == 0
-            val cnd2 = fn % 3 == 0
+            // call other method
+            val start = ON_CREATE_METHOD_OFFSET
+            val end = list.size - 1
+            if (start < end) {
+                val fn = Random.nextInt(start, end)
+                val cnd1 = fn % 2 == 0
+                val cnd2 = fn % 3 == 0
 
-            if (cnd1) {
-                // 弹Toast
-                method.visitLdcInsn(producer.randomStringValues())
-                method.visitInsn(Opcodes.ICONST_0)
-                method.visitMethodInsn(
-                    Opcodes.INVOKESTATIC,
-                    "android/widget/Toast",
-                    "makeText",
-                    "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;",
-                    false
-                )
+                if (cnd1) {
+                    // 弹Toast
+                    method.visitLdcInsn(producer.randomStringValues(unicode = true))
+                    method.visitInsn(Opcodes.ICONST_0)
+                    method.visitMethodInsn(
+                        Opcodes.INVOKESTATIC,
+                        "android/widget/Toast",
+                        "makeText",
+                        "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;",
+                        false
+                    )
 
-                method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "android/widget/Toast", "show", "()V", false)
-                method.visitInsn(Opcodes.RETURN)
-            } else {
-                val get = list[fn]
-                method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, self, get, "()V", false)
+                    method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "android/widget/Toast", "show", "()V", false)
+                    method.visitInsn(Opcodes.RETURN)
+                } else {
+                    val get = list[fn]
+                    method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, self, get, "()V", false)
+                }
             }
 
             method.visitInsn(Opcodes.RETURN)
@@ -499,6 +521,68 @@ internal abstract class AndroidJunkGenerator(
         return this.ids[Random.nextInt(this.ids.size)]
     }
 
+    private fun generateManifest() {
+        val manifestFile = File(workspace, "AndroidManifest.xml")
+
+        val activities = activityNames.joinToString("\n\n") { activity -> "<activity android:name=\"$activity\" />" }
+
+        val xml = """<manifest
+            ${AndroidJunkCodeProducer.ANDROID_SCHEMA}
+            ${AndroidJunkCodeProducer.ANDROID_TOOLS_SCHEMA}
+            package="${param.appPackageName}">
+                <application>
+                    $activities
+                </application>
+            </manifest>""".trimIndent()
+        writeStringToFile(manifestFile, xml)
+    }
+
+    private fun writeResourceContent() {
+        val file = File(workspace, "res/values/strings.xml")
+        val parent = file.parentFile
+        if (!parent.exists()){
+            parent.mkdirs()
+        }
+
+        FileWriter(file)
+            .use { writer ->
+                writer.write(AndroidJunkCodeProducer.XML_SCHEMA)
+                writer.write("\n<resources>")
+
+                strings.forEach { key ->
+                    val s = "\n\t<string name=\"$key\">${producer.randomStringValues(64)}</string>"
+                    writer.write(s)
+                }
+
+                writer.write("\n</resources>")
+            }
+
+        drawables.forEach { name ->
+            val with = Random.nextInt(96)
+            val height = Random.nextInt(96)
+
+            val content = StringBuilder(
+                """<vector xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:width="${with}dp"
+                    android:height="${height}dp"
+                    android:viewportWidth="96"
+                    android:viewportHeight="96">
+                    <path  android:fillColor="${producer.randomColor()}" android:pathData="M"""
+            )
+            val t: Int = Random.nextInt(3, 40)
+            for (i in 0 until t) {
+                val fn = Random.nextInt(96)
+                content.append(fn).append(",")
+            }
+            content.append(Random.nextInt(96))
+            content.append("z\" />\n").append("</vector>\n").append("\n")
+
+            val drawableFile = File(workspace, "res/drawable/$name.xml")
+            writeStringToFile(drawableFile, content.toString())
+        }
+
+    }
+
     protected fun writeClassToFile(packageName: String, className: String, bytes: ByteArray) {
         val dir = File(workspace, classesDirName)
         val parent = File(dir, packageName.replace(".", "/"))
@@ -515,6 +599,38 @@ internal abstract class AndroidJunkGenerator(
         file.writeBytes(bytes)
     }
 
+    private fun generateKeepProguard() {
+
+        // 生成混淆保持文件
+        val proguard = "-keep class ${param.appPackageName}.**{*;}"
+        writeStringToFile(File(workspace, "consumer-rules.pro"), proguard)
+
+        val prefix: String = param.resPrefix
+
+        if (prefix.isEmpty()) {
+            return
+        }
+
+        val keep = "@layout/$prefix*,@drawable/$prefix*,@string/$prefix*"
+
+        val content = """<?xml version="1.0" encoding="utf-8"?>
+        <resources xmlns:tools="http://schemas.android.com/tools"
+        tools:keep="$keep"
+        tools:shrinkMode="strict"/>""".trimIndent()
+        val rnd = producer.randomResourceName()
+        writeStringToFile(File(workspace, "res/raw/" + prefix + rnd + "_keep.xml"), content)
+    }
+
+    private fun writeRFile() {
+        val ss = strings.joinToString("\n") { "int string $it 0x0" }
+        val sl = layouts.joinToString("\n") { "int layout $it 0x0" }
+        val sd = drawables.joinToString("\n") { "int drawable $it 0x0" }
+        val si = ids.joinToString("\n") { "int id $it 0x0" }
+
+        val txt = ss + "\n" + sl + "\n" + sd + "\n" + si
+        writeStringToFile(File(workspace, "R.txt"), txt)
+    }
+
     protected fun writeStringToFile(file: File, content: String): Boolean {
         if (!file.parentFile.exists()) {
             file.parentFile.mkdirs()
@@ -525,4 +641,103 @@ internal abstract class AndroidJunkGenerator(
         }.isSuccess
     }
 
+
+    private fun assembleAar(): File {
+        // 将 class 打包成jar
+        val classJar = File(workspace, "classes.jar")
+        val dir = File(workspace, classesDirName)
+
+        classJar.outputStream().use { fos ->
+            val jos = JarOutputStream(fos)
+
+            dir.listFiles()?.forEach { file ->
+                addFileToJar(file, "", jos)
+            }
+
+            jos.finish()
+        }
+
+        // 删除 class 目录
+        // dir.deleteRecursively()
+
+        // 打包aar
+        val out = File(output, "${param.fileName}.aar")
+        val parent = out.parentFile
+        if (!parent.exists()) {
+            parent.mkdirs()
+        } else if (out.exists()) {
+            out.delete()
+        }
+
+        out.outputStream().use { fos ->
+            val zos = ZipOutputStream(fos)
+            workspace.listFiles { _, name -> name != classesDirName }?.forEach { file -> addFileToZip(file, "", zos) }
+            zos.finish()
+        }
+
+        return out
+    }
+
+    private fun addFileToJar(file: File, node: String, jos: JarOutputStream) {
+        if (file.isDirectory) {
+            file.listFiles()?.forEach { f ->
+                addFileToJar(f, node + file.name + "/", jos)
+            }
+        } else {
+            val entry = JarEntry(node + file.name)
+            copyEntry(entry, file, jos)
+        }
+    }
+
+    private fun addFileToZip(file: File, node: String, zos: ZipOutputStream) {
+        if (file.isDirectory) {
+            file.listFiles()?.forEach { f ->
+                addFileToZip(f, node + file.name + "/", zos)
+            }
+        } else {
+            val entry = ZipEntry(node + file.name)
+            copyEntry(entry, file, zos)
+        }
+    }
+
+    private fun copyEntry(entry: ZipEntry, file: File, zos: ZipOutputStream) {
+        zos.putNextEntry(entry)
+
+        file.inputStream().use { fos ->
+            val bytes = ByteArray(10240)
+            var len: Int
+            while (true) {
+                len = fos.read(bytes)
+                if (len == -1) break
+                zos.write(bytes, 0, len)
+            }
+
+            zos.closeEntry()
+        }
+    }
+
+    private fun fileSize(size: Long): String {
+        val gb = 1024 * 1024 * 1024 //定义GB的计算常量
+
+        val mb = 1024 * 1024 //定义MB的计算常量
+
+        val kb = 1024 //定义KB的计算常量
+
+        // 格式化小数
+        // 格式化小数
+        val df = DecimalFormat("0.00")
+
+        return if (size / gb >= 1) {
+            //如果当前Byte的值大于等于1GB
+            df.format(size / gb.toFloat()) + "GB"
+        } else if (size / mb >= 1) {
+            //如果当前Byte的值大于等于1MB
+            df.format(size / mb.toFloat()) + "MB"
+        } else if (size / kb >= 1) {
+            //如果当前Byte的值大于等于1KB
+            df.format(size / kb.toFloat()) + "KB"
+        } else {
+            size.toString() + "B"
+        }
+    }
 }
