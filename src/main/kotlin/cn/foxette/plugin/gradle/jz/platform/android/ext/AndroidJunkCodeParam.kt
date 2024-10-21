@@ -41,7 +41,7 @@ internal class AndroidJunkCodeParam(
 
     fun getPackageActivityCount(): Int {
         val min = if (minPackageActivityCount < 0) 0 else minPackageActivityCount
-        val max = if (maxPackageActivityCount < min) min else maxPackageActivityCount
-        return Random.nextInt(min, max)
+        val max = maxPackageActivityCount
+        return if (max <= min) min else Random.nextInt(min, max)
     }
 }

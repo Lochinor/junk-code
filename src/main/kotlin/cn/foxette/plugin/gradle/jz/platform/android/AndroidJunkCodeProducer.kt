@@ -14,7 +14,10 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
         const val MAX_DEPTH = 3
         const val VIEW_ATTRIBUTE_MASK = 1024
 
-        const val ANDROID_SCHEMA = "https://schemas.android.com/apk/res/android"
+        const val XML_SCHEMA = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        const val ANDROID_SCHEMA = "xmlns:android=\"http://schemas.android.com/apk/res/android\""
+        const val ANDROID_TOOLS_SCHEMA = "xmlns:tools=\"http://schemas.android.com/tools\""
+        const val ANDROID_APP_SCHEMA = "xmlns:app=\"http://schemas.android.com/apk/res-auto\""
 
         val COLORS = "0123456789abcdef".toCharArray()
 
@@ -84,8 +87,8 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
 
             "Button", "TextView", "android.widget.Button" -> {
                 // 展示随机 Text
-                if (cnd1)
-                    attribute("android:text=\"${randomStringValues()}")
+                if (cnd1 || (cnd2 && generator.strings.isEmpty()))
+                    attribute("android:text=\"${randomStringValues()}\"")
                 else if (cnd2)
                     attribute("android:text=\"@string/${randomNext(generator.strings)}\"")
 
@@ -95,7 +98,7 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
             }
 
             "ImageButton", "ImageView" -> {
-                if (cnd3) attribute("android:src=\"@drawable/${randomNext(generator.drawables)}\"")
+                if (cnd3 && generator.drawables.isNotEmpty()) attribute("android:src=\"@drawable/${randomNext(generator.drawables)}\"")
                 if (cnd4) attribute("android:scaleType=\"${randomNext(IMAGE_SCALE_TYPE)}\"")
             }
 
@@ -105,7 +108,7 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
         // 背景颜色
         if (cnd3 && cnd4) {
             val color =
-                if (cnd5) "@drawable/${randomNext(generator.drawables)}" else randomColor()
+                if (cnd5 && generator.drawables.isNotEmpty()) "@drawable/${randomNext(generator.drawables)}" else randomColor()
 
             attr.append("\n").append("android:background=\"$color\"")
         }
@@ -136,10 +139,10 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
         val view = VIEWS_GROUP[Random.nextInt(VIEWS_GROUP.size)]
 
         val tpl = if (root) """
-            <?xml version="1.0" encoding="utf-8"?>
-            <$view xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:app="http://schemas.android.com/apk/res-auto"
-                xmlns:tools="http://schemas.android.com/tools"
+            $XML_SCHEMA
+            <$view $ANDROID_SCHEMA
+                $ANDROID_APP_SCHEMA
+                $ANDROID_TOOLS_SCHEMA
                 ${viewSize(true)}
                 ${viewAttribute(view)}>
         """ else """
@@ -158,8 +161,7 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
         id: String? = null,
         depth: Int = 1,
     ): Triple<String, String, String> {
-        val viewPools = getViewPools()
-        val view = viewPools[Random.nextInt(viewPools.size)]
+        val view = randomNext(getViewPools())
         val content = """
             <$view
                 ${viewSize(false)}
