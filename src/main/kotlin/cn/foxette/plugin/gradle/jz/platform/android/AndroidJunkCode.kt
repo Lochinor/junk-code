@@ -46,6 +46,8 @@ object AndroidJunkCode : JunkCodePlatform() {
             maxActivityCount.convention(-1)
             maxPackageActivityCount.convention(-1)
             minPackageActivityCount.convention(1)
+            minPackageBlurCount.convention(-1)
+            maxPackageBlurCount.convention(-1)
             resPrefix.convention("jz_")
             skipResource.convention(false)
             androidxEnable.convention(true)

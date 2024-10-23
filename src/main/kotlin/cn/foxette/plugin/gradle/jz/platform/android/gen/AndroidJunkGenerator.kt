@@ -16,6 +16,7 @@ import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.math.max
 import kotlin.random.Random
 
 internal abstract class AndroidJunkGenerator(
@@ -58,9 +59,7 @@ internal abstract class AndroidJunkGenerator(
     open fun execute() {
         val start = System.nanoTime()
         logger.log("Junk code task execute start.")
-
         cleanUp()
-
         generateResource()
         generateClasses()
         generateManifest()
@@ -125,13 +124,14 @@ internal abstract class AndroidJunkGenerator(
         val count = param.packageCount
         for (i in 0 until count) {
             val packageName = param.appPackageName + "." + producer.randomPackageName()
+            val activityCount = param.getPackageActivityCount(activityNames.size)
+
             // 生成不相关的类
-            val blurCount = Random.nextInt(1, 5)
+            val blurCount = param.getPackageBlurCount(Random.nextInt(1, activityCount * 2 + 2))
             for (j in 0 until blurCount) {
                 generateBlurClasses(packageName)
             }
 
-            val activityCount = param.getPackageActivityCount()
             for (k in 0 until activityCount) {
                 // 生成Activity
                 generateActivity(packageName)

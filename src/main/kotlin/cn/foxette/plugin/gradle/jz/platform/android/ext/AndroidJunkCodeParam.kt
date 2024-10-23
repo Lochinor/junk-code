@@ -12,14 +12,23 @@ internal class AndroidJunkCodeParam(
     val maxActivityCount: Int,
 
     /**
+     * 每个包里面最少 Activity 数量
+     */
+    private val minPackageActivityCount: Int,
+    /**
      * 每个包里面最多 Activity 数量
      */
     private val maxPackageActivityCount: Int,
 
     /**
-     * 每个包里面最少 Activity 数量
+     * 每个包下普通Java类的最小数量
      */
-    private val minPackageActivityCount: Int,
+    private val minPackageBlurCount: Int,
+
+    /**
+     * 每个包下普通Java类的最大数量
+     */
+    private val maxPackageBlurCount: Int,
 
     /**
      * 资源前缀
@@ -39,9 +48,26 @@ internal class AndroidJunkCodeParam(
     val drawableCount: Int
 ) {
 
-    fun getPackageActivityCount(): Int {
+    /**
+     * @param current 当前数量
+     */
+    fun getPackageActivityCount(current: Int): Int {
+        // 已经达到上限了
+        if (maxActivityCount in 0 until current) {
+            return 0
+        }
+
         val min = if (minPackageActivityCount < 0) 0 else minPackageActivityCount
         val max = maxPackageActivityCount
+        return if (max <= min) min else Random.nextInt(min, max)
+    }
+
+    /**
+     * @param refer 参考值
+     */
+    fun getPackageBlurCount(refer: Int): Int {
+        val min = if (minPackageBlurCount < 0) refer else minPackageBlurCount
+        val max = maxPackageBlurCount
         return if (max <= min) min else Random.nextInt(min, max)
     }
 }

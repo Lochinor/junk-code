@@ -50,6 +50,16 @@ interface AndroidJunkCodeExtension {
     val minPackageActivityCount: Property<Int>
 
     /**
+     * 每个包下普通Java类的最小数量
+     */
+    val minPackageBlurCount: Property<Int>
+
+    /**
+     * 每个包下普通Java类的最大数量
+     */
+    val maxPackageBlurCount: Property<Int>
+
+    /**
      * 资源前缀
      */
     val resPrefix: Property<String>

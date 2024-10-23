@@ -21,7 +21,7 @@ abstract class AndroidJunkCodeTask : DefaultTask(), Logger by SystemLogger("[$TA
 
     }
 
-    private fun adjustParams(property: Property<Int>, defaultValue: Int = 0): Int {
+    private fun adjustParams(property: Property<Int>, defaultValue: Int = -1): Int {
         val value = property.getOrElse(defaultValue)
         return if (value < 0) defaultValue else value
     }
@@ -44,8 +44,10 @@ abstract class AndroidJunkCodeTask : DefaultTask(), Logger by SystemLogger("[$TA
             extension.packageName.get() + "." + extension.moduleName.get(),
             packageCount,
             maxActivityCount,
-            maxPackageActivityCount,
             minPackageActivityCount,
+            maxPackageActivityCount,
+            adjustParams(extension.minPackageBlurCount),
+            adjustParams(extension.maxPackageBlurCount),
             extension.resPrefix.get(),
             extension.skipResource.get(),
             // 按照一个 activity 5 个字符串 2 个 drawable
