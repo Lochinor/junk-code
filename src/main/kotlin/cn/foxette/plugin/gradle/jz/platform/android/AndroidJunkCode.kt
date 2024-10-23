@@ -9,25 +9,30 @@ import cn.foxette.plugin.gradle.jz.platform.jvm.JvmJunkCodeProducer
 import org.gradle.api.Project
 import java.io.File
 
-internal class AndroidJunkCode : JunkCodePlatform() {
+object AndroidJunkCode : JunkCodePlatform() {
 
-    private companion object {
-        const val EXTENSION_NAME = "androidJunkCode"
-        const val TASK_NAME = "generateAndroidJunkCode"
-    }
+    private const val EXTENSION_NAME = "androidJunkCode"
+    private const val TASK_NAME = "generateAndroidJunkCode"
 
     private val producer = JvmJunkCodeProducer()
 
+    private lateinit var project: Project
+    private lateinit var ext: AndroidJunkCodeExtension
+
     override fun apply(project: Project) {
-        val extension = project.extensions.create(EXTENSION_NAME, AndroidJunkCodeExtension::class.java)
+        this.project = project
+        val extension = AndroidJunkCode.project.extensions.create(EXTENSION_NAME, AndroidJunkCodeExtension::class.java)
+        this.ext = extension
         convention(extension)
         createTask(project)
         afterEvaluate(project, extension)
     }
 
+    val buildDir: File get() = project.buildDir
+    val projectDir: File get() = project.projectDir
+    val extension: AndroidJunkCodeExtension? get() = ext
+
     private fun convention(extension: AndroidJunkCodeExtension) {
-
-
         with(extension) {
             fileName.convention("junk_code_${ProjectConst.VERSION}")
             autoUsage.convention(true)
@@ -36,6 +41,8 @@ internal class AndroidJunkCode : JunkCodePlatform() {
             // 使用随机包名
             packageName.convention("cn.foxette.${producer.randomPackageName()}")
             packageCount.convention(8)
+            stringsCount.convention(-1)
+            drawableCount.convention(-1)
             maxActivityCount.convention(-1)
             maxPackageActivityCount.convention(-1)
             minPackageActivityCount.convention(1)

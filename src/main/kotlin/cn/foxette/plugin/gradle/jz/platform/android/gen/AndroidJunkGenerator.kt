@@ -1,14 +1,11 @@
 package cn.foxette.plugin.gradle.jz.platform.android.gen
 
 import cn.foxette.plugin.gradle.jz.log.Logger
-import cn.foxette.plugin.gradle.jz.log.PluginLogger
 import cn.foxette.plugin.gradle.jz.platform.android.AndroidJunkCodeProducer
-import cn.foxette.plugin.gradle.jz.platform.android.AndroidJunkCodeProducer.Companion.ANDROID_SCHEMA
 import cn.foxette.plugin.gradle.jz.platform.android.ext.AndroidJunkCodeParam
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.ClassInfo
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.ClassType
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.FieldInfo
-import org.gradle.api.Task
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import java.io.File
@@ -22,12 +19,12 @@ import java.util.zip.ZipOutputStream
 import kotlin.random.Random
 
 internal abstract class AndroidJunkGenerator(
-    task: Task,
     // 工作目录
     dir: String,
+    protected val logger: Logger,
     // 输出保存的目录
     protected val output: String, protected val param: AndroidJunkCodeParam
-) : Logger by PluginLogger({ task.project }) {
+) {
 
     protected companion object {
         const val MAX_ID_SIZE = 8192
@@ -60,7 +57,7 @@ internal abstract class AndroidJunkGenerator(
 
     open fun execute() {
         val start = System.nanoTime()
-        log("Junk code task execute start.")
+        logger.log("Junk code task execute start.")
 
         cleanUp()
 
@@ -71,29 +68,28 @@ internal abstract class AndroidJunkGenerator(
         generateKeepProguard()
         writeRFile()
 
-        log("资源文件生成完成，开始打包...")
+        logger.log("资源文件生成完成，开始打包...")
 
         // 正在打包
         val outPath = assembleAar()
-        val msg = "垃圾代码生成完成：\n\r\t$outPath \n\r\t${fileSize(outPath.length())}"
-        log(msg)
-        println(msg)
+        val msg = "Junk code generate finished：\n\r\t$outPath \n\r\t${fileSize(outPath.length())}"
+        logger.log(msg)
 
         val end = System.nanoTime()
         val timeMills = (end - start) / 1_000_000
         val s = timeMills / 1000
         val ms = timeMills % 1000
 
-        log("用时：${s}.${ms} 秒")
+        logger.log("用时：${s}.${ms} 秒")
     }
 
     protected open fun generateResource() {
         if (param.skipResource) {
-            log("Skip generateResource.")
+            logger.log("Skip generateResource.")
             return
         }
 
-        log("Start generateResource...")
+        logger.log("Start generateResource...")
         strings.addAll(generateResourceIds(param.stringsCount))
         drawables.addAll(generateResourceIds(param.drawableCount))
     }
@@ -125,7 +121,7 @@ internal abstract class AndroidJunkGenerator(
     }
 
     protected open fun generateClasses() {
-        log("Start generate classes...")
+        logger.log("Start generate classes...")
         val count = param.packageCount
         for (i in 0 until count) {
             val packageName = param.appPackageName + "." + producer.randomPackageName()
@@ -540,7 +536,7 @@ internal abstract class AndroidJunkGenerator(
     private fun writeResourceContent() {
         val file = File(workspace, "res/values/strings.xml")
         val parent = file.parentFile
-        if (!parent.exists()){
+        if (!parent.exists()) {
             parent.mkdirs()
         }
 

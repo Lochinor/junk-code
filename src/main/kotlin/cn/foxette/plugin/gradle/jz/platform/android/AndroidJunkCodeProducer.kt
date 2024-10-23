@@ -3,7 +3,6 @@ package cn.foxette.plugin.gradle.jz.platform.android
 import cn.foxette.plugin.gradle.jz.configuration.ProjectConst
 import cn.foxette.plugin.gradle.jz.platform.android.gen.AndroidJunkGenerator
 import cn.foxette.plugin.gradle.jz.platform.jvm.JvmJunkCodeProducer
-import org.gradle.internal.impldep.org.apache.commons.lang.text.StrBuilder
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.max
 import kotlin.random.Random
@@ -85,7 +84,7 @@ internal open class AndroidJunkCodeProducer(private val generator: AndroidJunkGe
 
     private fun viewAttribute(view: String): String {
         val value = randomSeed()
-        val attr = StrBuilder()
+        val attr = StringBuilder()
 
         val cnd1 = value % 2 == 0
         val cnd2 = value % 3 == 0

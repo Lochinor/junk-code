@@ -7,7 +7,7 @@ import org.gradle.api.Project
 class JunkCodePlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
-        AndroidJunkCode().apply(project)
+        AndroidJunkCode.apply(project)
     }
 
     private fun isAndroidEnvironment(project: Project): Boolean {
