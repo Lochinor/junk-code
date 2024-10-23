@@ -1,0 +1,34 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven {
+            url 'http://maven.foxaura.cn/repository/maven-nexus/'
+            allowInsecureProtocol true
+            credentials {
+                username 'guest'
+                password 'guest'
+            }
+        }
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.1.0'
+        classpath 'cn.foxette.plugin.gradle:junk-code:0.0.1'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

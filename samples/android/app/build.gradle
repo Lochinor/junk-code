@@ -1,43 +1,31 @@
-# Android Junk Code Generator
+plugins {
+    id "com.android.application"
+    id "cn.foxette.plugin.gradle.junk-code"
+}
 
-[English](README.md)
+android {
+    compileSdkVersion 34
+    namespace 'com.example.android'
 
-Android 垃圾代码生成插件
-
-### 使用
-
-在项目根目录中的 `build.gradle` 中添加
-
-gradle 8.0 之前
-```kotlin
-buildscript {
-    dependencies {
-        classpath("cn.foxette.plugin.gradle:junk-code:0.0.1")
+    defaultConfig {
+        applicationId "com.example.android"
+        minSdkVersion 19
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0"
     }
 }
-```
 
-gradle 8.0 之后
-```kotlin
-plugins {
-    id("cn.foxette.plugin.gradle.junk-code") version "0.0.1" apply false
+dependencies {
+    // 如果生成后移除了插件或者 autoUsage 设置成了 false 可手动添加以下代码
+    // releaseRuntimeOnly fileTree(dir : "junk", include : ["*.aar"])
 }
-```
-
-`app` 的 `build.gradle` 中添加如下
-
-```kotlin
-plugins {
-    // ... other
-    id("cn.foxette.plugin.gradle.junk-code")
-}
-
 
 androidJunkCode {
     //  要生成包的数量
-    packageCount.set(50)
+    packageCount.set(5)
     // 每个包下最多有多少个activity，最多 3200
-    maxPackageActivityCount.set(30)
+    maxPackageActivityCount.set(3)
 
     // 以下参数可选
     // 默认 cn.foxette.随机生成 包名，可以与项目包名一致
@@ -60,11 +48,3 @@ androidJunkCode {
     // 默认false  是否忽略生成 drawable string
     skipResource.set(false)
 }
-```
-
-### 代码生成
-* 如果`autoGenerate`设置为`true`时，删除`junk`后，下次运行或者更新同步gradle配置会自动生成
-* 手动生成：执行以下任务
-    ```shell
-    gradle generateAndroidJunkCode
-    ```

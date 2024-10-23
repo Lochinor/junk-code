@@ -65,3 +65,10 @@ androidJunkCode {
     skipResource.set(false)
 }
 ```
+
+### Code Generation:
+* If the `autoGenerate` is set to `true` after deleting the `junk`, the next run or update of the gradle configuration will automatically generate the code.
+* Manual generation: execute the following tasks:
+    ```shell
+    gradle generateAndroidJunkCode
+    ```
