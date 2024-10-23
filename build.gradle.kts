@@ -57,6 +57,35 @@ gradlePlugin {
 
 pluginBundle {
     website = "https://github.com/Lochinor"
-    vcsUrl = "https://github.com/Lochinor/junk-code-android"
+    vcsUrl = "https://github.com/Lochinor/junk-code"
     tags = listOf("JunkCode", "Android")
+}
+
+val properties = Properties()
+
+// 私服账号密码存放在 local.properties 中
+val locale = File("./local.properties")
+if (locale.exists()) {
+    properties.load(locale.inputStream())
+}
+
+val nxName: String? = properties.getProperty("nexus.username")
+val nxPwd: String? = properties.getProperty("nexus.password")
+
+if (!nxName.isNullOrEmpty() && !nxPwd.isNullOrEmpty()) {
+    publishing {
+        publications {
+            repositories {
+                maven {
+                    name = "junk-code"
+                    setUrl("http://maven.foxaura.cn/repository/maven-nexus/")
+                    credentials {
+                        isAllowInsecureProtocol = true
+                        username = nxName
+                        password = nxPwd
+                    }
+                }
+            }
+        }
+    }
 }
