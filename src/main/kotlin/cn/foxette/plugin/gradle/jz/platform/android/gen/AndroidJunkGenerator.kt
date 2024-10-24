@@ -1,7 +1,6 @@
 package cn.foxette.plugin.gradle.jz.platform.android.gen
 
 import cn.foxette.plugin.gradle.jz.log.Logger
-import cn.foxette.plugin.gradle.jz.platform.android.AndroidJunkCodeProducer
 import cn.foxette.plugin.gradle.jz.platform.android.ext.AndroidJunkCodeParam
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.ClassInfo
 import cn.foxette.plugin.gradle.jz.platform.jvm.entity.ClassType
@@ -16,7 +15,6 @@ import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import kotlin.math.max
 import kotlin.random.Random
 
 internal abstract class AndroidJunkGenerator(
@@ -39,16 +37,16 @@ internal abstract class AndroidJunkGenerator(
     /**
      * 用于注册到 Manifest 中
      */
-    private val activityNames = ArrayList<String>(param.maxActivityCount)
+    private val activityNames = ArrayList<String>(param.activityClassesCount)
 
     private val blurClasses = BlurClasses()
 
     internal val strings = ArrayList<String>(param.stringsCount)
     internal val drawables = ArrayList<String>(param.drawableCount)
     internal val ids = ArrayList<String>(MAX_ID_SIZE ushr 1)
-    internal val layouts = ArrayList<String>(param.maxActivityCount)
+    internal val layouts = ArrayList<String>(param.activityClassesCount)
 
-    protected open val producer: AndroidJunkCodeProducer get() = AndroidJunkCodeProducer(this)
+    protected open val producer: AndroidJunkCodeProducerImpl get() = AndroidJunkCodeProducerImpl(this)
 
     protected open fun cleanUp() {
         workspace.deleteRecursively()
@@ -122,12 +120,16 @@ internal abstract class AndroidJunkGenerator(
     protected open fun generateClasses() {
         logger.log("Start generate classes...")
         val count = param.packageCount
-        for (i in 0 until count) {
-            val packageName = param.appPackageName + "." + producer.randomPackageName()
-            val activityCount = param.getPackageActivityCount(activityNames.size)
 
+        for (i in 0..count) {
+            val last = i == count
+            val offset = count - i
+
+            val suffix = if (last) "" else "." + producer.randomPackageName()
+            val packageName = param.appPackageName + suffix
+            val activityCount = param.randomPackageActivityCount(offset, activityNames.size, last)
             // 生成不相关的类
-            val blurCount = param.getPackageBlurCount(Random.nextInt(1, activityCount * 2 + 2))
+            val blurCount = param.randomPackageBlurCount(offset, blurClasses.blurClassesSize(), last)
             for (j in 0 until blurCount) {
                 generateBlurClasses(packageName)
             }
@@ -271,23 +273,24 @@ internal abstract class AndroidJunkGenerator(
         mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "android/app/Activity", "onCreate", "(Landroid/os/Bundle;)V", false)
 
         // new 一个对象，并给其字段赋值
-        val other = blurClasses.randomBlur()
-        val otherType = getTypedName(other.pkg, other.name)
-        mv.visitTypeInsn(Opcodes.NEW, otherType)
-        mv.visitInsn(Opcodes.DUP)
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, otherType, "<init>", "()V", false)
+        blurClasses.randomBlur()?.let { other ->
+            val otherType = getTypedName(other.pkg, other.name)
+            mv.visitTypeInsn(Opcodes.NEW, otherType)
+            mv.visitInsn(Opcodes.DUP)
+            mv.visitMethodInsn(Opcodes.INVOKESPECIAL, otherType, "<init>", "()V", false)
 
-        mv.visitVarInsn(Opcodes.ASTORE, 2)
-        mv.visitVarInsn(Opcodes.ALOAD, 2)
-
-        val fields = other.fields
-        fields.shuffled()
-        val callCnt = if (fields.isEmpty()) 0 else Random.nextInt(fields.size)
-        repeat(callCnt) { index ->
-            val field = fields[index]
+            mv.visitVarInsn(Opcodes.ASTORE, 2)
             mv.visitVarInsn(Opcodes.ALOAD, 2)
-            mv.visitLdcInsn(producer.randomStringValues(unicode = true))
-            mv.visitFieldInsn(Opcodes.PUTFIELD, otherType, field.name, "Ljava/lang/String;")
+
+            val fields = other.fields
+            fields.shuffled()
+            val callCnt = if (fields.isEmpty()) 0 else Random.nextInt(fields.size)
+            repeat(callCnt) { index ->
+                val field = fields[index]
+                mv.visitVarInsn(Opcodes.ALOAD, 2)
+                mv.visitLdcInsn(producer.randomStringValues())
+                mv.visitFieldInsn(Opcodes.PUTFIELD, otherType, field.name, "Ljava/lang/String;")
+            }
         }
 
         // setContentView
@@ -354,7 +357,7 @@ internal abstract class AndroidJunkGenerator(
 
                 if (cnd1) {
                     // 弹Toast
-                    method.visitLdcInsn(producer.randomStringValues(unicode = true))
+                    method.visitLdcInsn(producer.randomStringValues())
                     method.visitInsn(Opcodes.ICONST_0)
                     method.visitMethodInsn(
                         Opcodes.INVOKESTATIC,
@@ -425,7 +428,7 @@ internal abstract class AndroidJunkGenerator(
         if (cnd2) {
             // 调用log日志
             onClick.visitLdcInsn(name)
-            onClick.visitLdcInsn("onClick")
+            onClick.visitLdcInsn(producer.randomStringValues())
             onClick.visitMethodInsn(
                 Opcodes.INVOKESTATIC, "android/util/Log", "d", "(Ljava/lang/String;Ljava/lang/String;)I", false
             )
@@ -488,7 +491,7 @@ internal abstract class AndroidJunkGenerator(
                 xml.append(view)
                 stack.add(suffix)
                 depth++
-            } while (depth < AndroidJunkCodeProducer.MAX_DEPTH && producer.isViewGroup(type) && seed > 256)
+            } while (depth <= AndroidJunkCodeProducerImpl.MAX_DEPTH && producer.isViewGroup(type) && seed > 256 * depth)
 
             while (!stack.empty()) {
                 xml.append(stack.pop())
@@ -523,8 +526,8 @@ internal abstract class AndroidJunkGenerator(
         val activities = activityNames.joinToString("\n\n") { activity -> "<activity android:name=\"$activity\" />" }
 
         val xml = """<manifest
-            ${AndroidJunkCodeProducer.ANDROID_SCHEMA}
-            ${AndroidJunkCodeProducer.ANDROID_TOOLS_SCHEMA}
+            ${AndroidJunkCodeProducerImpl.ANDROID_SCHEMA}
+            ${AndroidJunkCodeProducerImpl.ANDROID_TOOLS_SCHEMA}
             package="${param.appPackageName}">
                 <application>
                     $activities
@@ -542,7 +545,7 @@ internal abstract class AndroidJunkGenerator(
 
         FileWriter(file)
             .use { writer ->
-                writer.write(AndroidJunkCodeProducer.XML_SCHEMA)
+                writer.write(AndroidJunkCodeProducerImpl.XML_SCHEMA)
                 writer.write("\n<resources>")
 
                 strings.forEach { key ->

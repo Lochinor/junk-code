@@ -42,7 +42,7 @@ tasks.named<Jar>("jar") {
 }
 
 group = "cn.foxette.plugin.gradle"
-version = "0.0.1"
+version = "0.0.2"
 
 gradlePlugin {
     plugins {

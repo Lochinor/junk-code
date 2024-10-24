@@ -9,26 +9,12 @@ internal class AndroidJunkCodeParam(
     /**
      * Activity 数量上限  <= 0 不限制
      */
-    val maxActivityCount: Int,
+    val activityClassesCount: Int,
 
     /**
-     * 每个包里面最少 Activity 数量
+     * 普通Java类的数量
      */
-    private val minPackageActivityCount: Int,
-    /**
-     * 每个包里面最多 Activity 数量
-     */
-    private val maxPackageActivityCount: Int,
-
-    /**
-     * 每个包下普通Java类的最小数量
-     */
-    private val minPackageBlurCount: Int,
-
-    /**
-     * 每个包下普通Java类的最大数量
-     */
-    private val maxPackageBlurCount: Int,
+    val blurClassesCount: Int,
 
     /**
      * 资源前缀
@@ -51,23 +37,22 @@ internal class AndroidJunkCodeParam(
     /**
      * @param current 当前数量
      */
-    fun getPackageActivityCount(current: Int): Int {
-        // 已经达到上限了
-        if (maxActivityCount in 0 until current) {
-            return 0
-        }
-
-        val min = if (minPackageActivityCount < 0) 0 else minPackageActivityCount
-        val max = maxPackageActivityCount
-        return if (max <= min) min else Random.nextInt(min, max)
+    fun randomPackageActivityCount(offset: Int, current: Int, last: Boolean): Int {
+        return nextClassesCount(activityClassesCount, offset, current, last)
     }
 
     /**
-     * @param refer 参考值
+     * @param current 当前数量
      */
-    fun getPackageBlurCount(refer: Int): Int {
-        val min = if (minPackageBlurCount < 0) refer else minPackageBlurCount
-        val max = maxPackageBlurCount
-        return if (max <= min) min else Random.nextInt(min, max)
+    fun randomPackageBlurCount(offset: Int, current: Int, last: Boolean): Int {
+        return nextClassesCount(blurClassesCount, offset, current, last)
+    }
+
+    private fun nextClassesCount(target: Int, offset: Int, current: Int, last: Boolean): Int {
+        val max = target - offset
+        // 已经达到上限了
+        if (max <= current) return 0
+        if (last) return max - current
+        return Random.nextInt(max - current) + 1
     }
 }

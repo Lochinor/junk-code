@@ -15,7 +15,7 @@ Before Gradle 8.0
 ```kotlin
 buildscript {
     dependencies {
-        classpath("cn.foxette.plugin.gradle:junk-code:0.0.1")
+        classpath("cn.foxette.plugin.gradle:junk-code:0.0.2")
     }
 }
 ```
@@ -24,7 +24,7 @@ buildscript {
 After Gradle 8.0 ```kotlin
 ```kotlin
 plugins {
-    id("cn.foxette.plugin.gradle.junk-code") version "0.0.1" apply false
+    id("cn.foxette.plugin.gradle.junk-code") version "0.0.2" apply false
 }
 ```
 
@@ -38,32 +38,36 @@ plugins {
 }
 
 androidJunkCode {
-    // The number of packages to generate
-    packageCount.set(50)
-    // There can be at most 3200 activities per package.
-    maxPackageActivityCount.set(30)
+  // Required: The total number of activities, up to 3600
+  activityClassesCount.set(30)
 
-    // The following parameters are optional:
-    // The default cn.foxette.`random` package name can be generated, which can be consistent with the project package name
-    packageName.set("cn.foxette.android")
-    // By default, jmp+`Random` AAR module name that is different from the current module name
-    moduleName.set("plugin")
-    // How many activities must there be at the minimum in each package
-    minPackageActivityCount.set(20)
+  // -- The following parameters are optional --
 
-    // The default prefix for jz_ resource names
-    resPrefix.set("jz_")
-    // The default name consists of the package name and the plugin version number. Custom AAR name
-    fileName.set("junk-1.1")
-    // The default value is true. Automatically generates when the app/junk directory is empty.
-    autoGenerate.set(true)
-    // This defaults to the number of activities, which is related to the number of strings generated in the `strings.xml` file.
-    stringsCount.set(100)
-    // Default is true - automatically adds the "releaseRuntimeOnly" fileTree(dir: "junk", include: ["*.aar"]) way to import aar files, if you don't need it, you can set it to false
-    autoUsage.set(true)
-    // Default false - whether to ignore generated drawable strings
-    skipResource.set(false)
+  // The number of packages to generate; [Recommended Setting] Default is 1
+  packageCount.set(50)
+  // Package name, can be the same as the project's package name; [Recommended Setting] Default is cn.foxette.{random}
+  packageName.set("cn.foxette.android")
+  // The module name for the aar, different from the current module name; Default is jmp{random}
+  moduleName.set("plugin")
+  // The number of regular class files, default is activityClassesCount * 2
+  blurClassesCount.set(20)
+
+  // The default prefix for resource names starting with "jz_"
+  resPrefix.set("jz_")
+  // The name of the aar, default is junk_code_{plugin version number}
+  fileName.set("junk-1.1")
+  // Automatically generate if the app/junk directory is empty; Default is true
+  autoGenerate.set(true)
+  // The number of strings to generate in strings.xml; Default is activityClassesCount * 5
+  stringsCount.set(100)
+  // The number of drawables to generate; Default is activityClassesCount * 2
+  drawableCount.set(50)
+  // Automatically add releaseRuntimeOnly fileTree(dir : "junk", include : ["*.aar"]) to include the aar, set to false if not needed
+  autoUsage.set(true)
+  // Whether to ignore generating drawable.xml and string.xml; Default is false
+  ignoreResource.set(false)
 }
+
 ```
 
 ### Code Generation:

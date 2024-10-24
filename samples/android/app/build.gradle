@@ -22,29 +22,32 @@ dependencies {
 }
 
 androidJunkCode {
-    //  要生成包的数量
-    packageCount.set(5)
-    // 每个包下最多有多少个activity，最多 3200
-    maxPackageActivityCount.set(3)
+    // 必填：activity的总数，最多 3600
+    activityClassesCount.set(30)
 
-    // 以下参数可选
-    // 默认 cn.foxette.随机生成 包名，可以与项目包名一致
+    // -- 以下参数可选 --
+
+    // 要生成包的数量；[建议设置] 默认1
+    packageCount.set(50)
+    // 包名，可以与项目包名一致；[建议设置] 默认 cn.foxette.{随机}
     packageName.set("cn.foxette.android")
-    // 默认 jmp+随机生成 aar的模块名，与当前的模块名不同
+    // aar的模块名，与当前的模块名不同；默认 jmp{随机}
     moduleName.set("plugin")
-    // 每个包下最少有多少个activity
-    minPackageActivityCount.set(20)
+    // 普通 class 数量，默认 activityClassesCount * 2
+    blurClassesCount.set(20)
 
     // 默认jz_ 资源名称的前缀
     resPrefix.set("jz_")
-    // 默认由包名和插件版本号组成 自定义aar的名称
+    // aar的名称，默认 junk_code_{插件版本号}
     fileName.set("junk-1.1")
-    // 默认true 检测到 app/junk 目录下为空时，自动生成
+    // 检测到 app/junk 目录下为空时，自动生成；默认true
     autoGenerate.set(true)
-    // 默认与 activity 的数量相关 生成在strings.xml中的字符串数量
+    // 生成在strings.xml中的字符串数量；默认 activityClassesCount * 5
     stringsCount.set(100)
-    // 默认true 自动添加 releaseRuntimeOnly fileTree(dir : "junk", include : ["*.aar"]) 方式引入aar，如不需要可以设置成false
+    // 生成 drawable 数量；默认 activityClassesCount * 2
+    drawableCount.set(50)
+    // 自动添加 releaseRuntimeOnly fileTree(dir : "junk", include : ["*.aar"]) 方式引入aar，如不需要可以设置成false
     autoUsage.set(true)
-    // 默认false  是否忽略生成 drawable string
-    skipResource.set(false)
+    // 是否忽略生成 drawable.xml string.xml; 默认false
+    ignoreResource.set(false)
 }

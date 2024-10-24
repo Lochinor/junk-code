@@ -11,7 +11,7 @@ import java.io.File
 
 object AndroidJunkCode : JunkCodePlatform() {
 
-    private const val EXTENSION_NAME = "androidJunkCode"
+     const val EXTENSION_NAME = "androidJunkCode"
     private const val TASK_NAME = "generateAndroidJunkCode"
 
     private val producer = JvmJunkCodeProducer()
@@ -21,6 +21,7 @@ object AndroidJunkCode : JunkCodePlatform() {
 
     override fun apply(project: Project) {
         this.project = project
+
         val extension = AndroidJunkCode.project.extensions.create(EXTENSION_NAME, AndroidJunkCodeExtension::class.java)
         this.ext = extension
         convention(extension)
@@ -41,15 +42,8 @@ object AndroidJunkCode : JunkCodePlatform() {
             // 使用随机包名
             packageName.convention("cn.foxette.${producer.randomPackageName()}")
             packageCount.convention(8)
-            stringsCount.convention(-1)
-            drawableCount.convention(-1)
-            maxActivityCount.convention(-1)
-            maxPackageActivityCount.convention(-1)
-            minPackageActivityCount.convention(1)
-            minPackageBlurCount.convention(-1)
-            maxPackageBlurCount.convention(-1)
             resPrefix.convention("jz_")
-            skipResource.convention(false)
+            ignoreResource.convention(false)
             androidxEnable.convention(true)
         }
     }

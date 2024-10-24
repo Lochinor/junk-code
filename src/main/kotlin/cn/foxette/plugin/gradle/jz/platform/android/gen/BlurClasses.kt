@@ -19,7 +19,9 @@ class BlurClasses {
         return false
     }
 
-    fun randomBlur(): ClassInfo {
-        return blurClasses[Random.nextInt(blurClasses.size)]
+    fun randomBlur(): ClassInfo? {
+        return if (blurClasses.isEmpty()) null else blurClasses[Random.nextInt(blurClasses.size)]
     }
+
+    fun blurClassesSize() = blurClasses.size
 }
