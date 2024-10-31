@@ -4,17 +4,6 @@ buildscript {
         google()
         mavenCentral()
         gradlePluginPortal()
-
-        // 由于插件审核中，提前体验插件Maven配置
-        // Due to the plugin review process, it is necessary to experience the maven in advance.
-        maven {
-            url 'http://maven.foxaura.cn/repository/maven-nexus/'
-            allowInsecureProtocol true
-            credentials {
-                username 'guest'
-                password 'guest'
-            }
-        }
     }
 
     dependencies {
